@@ -332,6 +332,8 @@ def trigger_buildkite_release_build(branch:, beta:)
     pipeline_file: 'release-build.yml'
   )
 
+  UI.success("Buildkite build triggered. Running on #{build_url}")
+
   return unless is_ci
 
   message = "This build triggered #{build_url} on <code>#{branch}</code>."
