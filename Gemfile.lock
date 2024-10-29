@@ -401,7 +401,7 @@ DEPENDENCIES
   fastlane (~> 2)
   fastlane-plugin-appcenter (~> 2.1.2)
   fastlane-plugin-sentry (~> 1.6)
-  fastlane-plugin-wpmreleasetoolkit (~> 12.0)
+  fastlane-plugin-wpmreleasetoolkit (~> 12.2)
   rmagick (~> 3.2.0)
 
 BUNDLED WITH
