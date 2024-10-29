@@ -19,8 +19,10 @@ abstract_target 'Automattic' do
     # Third Party
     #
     pod 'Gridicons', '~> 0.18'
-    pod 'AppCenter', '~> 4.4.3'
-    pod 'AppCenter/Distribute', '~> 4.4.3'
+
+    app_center_rule = '~> 5.0'
+    pod 'AppCenter', app_center_rule
+    pod 'AppCenter/Distribute', app_center_rule
 
     # Automattic
     #
