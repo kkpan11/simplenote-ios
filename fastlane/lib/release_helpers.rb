@@ -61,3 +61,34 @@ def create_backmerge_success_message(pr_urls:)
     MESSAGE
   end
 end
+
+# Marks a GitHub release milestone as completed (i.e. removes the frozen marker from the name) and closes it.
+def mark_github_release_milestone_as_completed(repository:, release_version:)
+  UI.message("Attempting to close the milestone for version #{release_version}...")
+
+  set_milestone_frozen_marker(
+    repository: repository,
+    milestone: release_version,
+    freeze: false
+  )
+  close_milestone(
+    repository: repository,
+    milestone: release_version
+  )
+
+  UI.message("Successfully closed the milestone for version #{release_version}.")
+rescue StandardError => e
+  report_milestone_error(error_title: "Error in milestone finalization process for `#{release_version}`: #{e.message}")
+end
+
+def report_milestone_error(error_title:)
+  error_message = <<-MESSAGE
+    #{error_title}
+    - If this is not the first time you are running the release task (e.g. retrying because it failed on first attempt), the milestone might have already been closed and this error is expected.
+    - Otherwise, please investigate the error.
+  MESSAGE
+
+  UI.error(error_message)
+
+  buildkite_annotate(style: 'warning', context: 'error-with-milestone', message: error_message) if is_ci
+end

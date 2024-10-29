@@ -187,25 +187,17 @@ platform :ios do
 
     create_backmerge_prs!
 
+    UI.message('Attempting to remove release branch protection in GitHub...')
+
     remove_branch_protection(
       repository: GITHUB_REPO,
       branch: release_branch_name
     )
 
-    begin
-      set_milestone_frozen_marker(
-        repository: GITHUB_REPO,
-        milestone: version,
-        freeze: false
-      )
-
-      close_milestone(
-        repository: GITHUB_REPO,
-        milestone: version
-      )
-    rescue StandardError => e
-      report_milestone_error(error_title: "Error in milestone finalization process for `#{version}`: #{e.message}")
-    end
+    mark_github_release_milestone_as_completed(
+      repository: GITHUB_REPO,
+      release_version: version
+    )
   end
 
   desc 'Creates a new hotfix branch for the given version:x.y.z. The branch will be cut from the tag x.y of the previous release'
@@ -366,18 +358,6 @@ def freeze_milestone_and_move_assigned_prs_to_next_milestone(
     context: 'code-freeze-milestone-updates',
     message: moved_prs_info
   )
-end
-
-def report_milestone_error(error_title:)
-  error_message = <<-MESSAGE
-    #{error_title}
-    - If this is not the first time you are running the release task (e.g. retrying because it failed on first attempt), the milestone might have already been closed and this error is expected.
-    - Otherwise, please investigate the error.
-  MESSAGE
-
-  UI.error(error_message)
-
-  buildkite_annotate(style: 'warning', context: 'error-with-milestone', message: error_message) if is_ci
 end
 
 def delete_all_metadata_release_notes(store_metadata_folder: STORE_METADATA_FOLDER)
