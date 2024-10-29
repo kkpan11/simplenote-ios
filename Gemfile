@@ -8,7 +8,7 @@ gem 'danger-dangermattic', '~> 1.0'
 gem 'fastlane', '~> 2'
 gem 'fastlane-plugin-appcenter', '~> 2.1.2'
 gem 'fastlane-plugin-sentry', '~> 1.6'
-gem 'fastlane-plugin-wpmreleasetoolkit', '~> 12.0'
+gem 'fastlane-plugin-wpmreleasetoolkit', '~> 12.2'
 
 group :screenshots, optional: true do
   gem 'rmagick', '~> 3.2.0'

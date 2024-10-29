@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 default_platform(:ios)
+
 fastlane_require 'xcodeproj'
 fastlane_require 'dotenv'
 fastlane_require 'open-uri'
@@ -53,6 +54,8 @@ require_relative 'lib/env_manager'
 import 'lanes/build.rb'
 import 'lanes/localization.rb'
 import 'lanes/release.rb'
+# This helper is only used in the release lanes but it needs to be imported here in order to access Fastlane-specific API and our methods like release_version_current
+import 'lib/release_helpers.rb'
 
 before_all do
   # Ensure we use the latest version of the toolkit

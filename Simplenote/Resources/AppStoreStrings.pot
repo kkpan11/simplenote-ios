@@ -66,11 +66,10 @@ msgctxt "app_store_keywords"
 msgid "notes,note,markdown,journal,sync,to-do,list,cloud,notebook,simple,notepad,tag,todo,writing,memo"
 msgstr ""
 
-msgctxt "v4.54-whats-new"
+msgctxt "v4.55-whats-new"
 msgid ""
 "- Updated icons to work with new iOS 18 styles\n"
 "- Add fall back login with username and password option to login\n"
 "- Updated link to privacy notice for California users\n"
-"\n"
 msgstr ""
 
