@@ -163,8 +163,8 @@ platform :ios do
     version = release_version_current
     UI.important <<~MESSAGE
       Finalizing release #{version}:
-      • Current build code: #{build_code_current}
-      • Final build code: #{new_build_code}
+      - Current build code: #{build_code_current}
+      - Final build code: #{new_build_code}
     MESSAGE
 
     UI.user_error!("Terminating as requested. Don't forget to run the remainder of this automation manually.") unless skip_confirm || UI.confirm('Do you want to continue?')
