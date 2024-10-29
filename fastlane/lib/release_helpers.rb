@@ -2,6 +2,7 @@
 
 # Notice the plural in the name.
 # The action this method calls may create multiple backmerge PRs, depending on how many release branches with version greater than the source are in the remote.
+#
 def create_backmerge_prs!(
   version: release_version_current,
   source_branch: release_branch_name(release_version: version),
@@ -63,6 +64,7 @@ def create_backmerge_success_message(pr_urls:)
 end
 
 # Marks a GitHub release milestone as completed (i.e. removes the frozen marker from the name) and closes it.
+#
 def mark_github_release_milestone_as_completed(repository:, release_version:)
   UI.message("Attempting to close the milestone for version #{release_version}...")
 
@@ -91,4 +93,12 @@ def report_milestone_error(error_title:)
   UI.error(error_message)
 
   buildkite_annotate(style: 'warning', context: 'error-with-milestone', message: error_message) if is_ci
+end
+
+# Delete a branch from the GitHub remote, after having removed any GitHub branch protection.
+#
+def delete_remote_git_branch!(branch_name, remote: 'origin')
+  remove_branch_protection(repository: GITHUB_REPO, branch: branch_name)
+
+  Git.open(Dir.pwd).push(remote, branch_name, delete: true)
 end

@@ -187,17 +187,45 @@ platform :ios do
 
     create_backmerge_prs!
 
-    UI.message('Attempting to remove release branch protection in GitHub...')
-
-    remove_branch_protection(
-      repository: GITHUB_REPO,
-      branch: release_branch_name
-    )
-
     mark_github_release_milestone_as_completed(
       repository: GITHUB_REPO,
       release_version: version
     )
+  end
+
+  lane :publish_release do |skip_confirm: false|
+    ensure_git_status_clean
+    ensure_git_branch_is_release_branch!
+
+    version_number = release_version_current
+
+    current_branch = release_branch_name(release_version: version_number)
+    next_release_branch = release_branch_name(release_version: release_version_next)
+
+    UI.important <<~PROMPT
+      Publish the #{version_number} release. This will:
+
+      - Publish the existing draft `#{version_number}` release on GitHub
+      - Which will also have GitHub create the associated Git tag, pointing to the tip of #{current_branch}
+      - If the release branch for the next version `#{next_release_branch}` already exists, backmerge `#{current_branch}` into it
+      - If needed, backmerge `#{current_branch}` back into `#{DEFAULT_BRANCH}`
+      - Delete the `#{current_branch}` branch
+    PROMPT
+    UI.user_error!("Terminating as requested. Don't forget to run the remainder of this automation manually.") unless skip_confirm || UI.confirm('Do you want to continue?')
+
+    UI.important "Publishing release #{version_number} on GitHub..."
+
+    publish_github_release(
+      repository: GITHUB_REPO,
+      name: version_number
+    )
+
+    create_backmerge_prs!
+
+    # At this point, an intermediate branch has been created by creating a backmerge PR to a hotfix or the next version release branch.
+    # This allows us to safely delete the `release/*` branch.
+    # Note that if a hotfix or new release branches haven't been created, the backmerge PR would not have be created either.
+    delete_remote_git_branch!(current_branch)
   end
 
   desc 'Creates a new hotfix branch for the given version:x.y.z. The branch will be cut from the tag x.y of the previous release'
