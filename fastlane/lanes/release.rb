@@ -112,13 +112,7 @@ platform :ios do
 
     trigger_beta_build(branch_to_build: release_branch_name(release_version: version))
 
-    pr_url = create_backmerge_pr!
-
-    message = <<~MESSAGE
-      Code freeze completed successfully. Next, review and merge the [integration PR](#{pr_url}).
-    MESSAGE
-    buildkite_annotate(context: 'code-freeze-completed', style: 'success', message: message) if is_ci
-    UI.success(message)
+    create_backmerge_prs!
   end
 
   lane :new_beta_release do |skip_confirm: false|
@@ -153,13 +147,7 @@ platform :ios do
 
     trigger_beta_build(branch_to_build: release_branch_name)
 
-    pr_url = create_backmerge_pr!
-
-    message = <<~MESSAGE
-      New beta triggered successfully. Next, review and merge the [integration PR](#{pr_url}).
-    MESSAGE
-    buildkite_annotate(context: 'new-beta-completed', style: 'success', message: message) if is_ci
-    UI.success(message)
+    create_backmerge_prs!
   end
 
   desc 'Trigger the final release build on CI'
@@ -197,7 +185,7 @@ platform :ios do
 
     trigger_release_build(branch_to_build: release_branch_name)
 
-    create_backmerge_prs
+    create_backmerge_prs!
 
     remove_branch_protection(
       repository: GITHUB_REPO,
@@ -279,7 +267,7 @@ platform :ios do
 
     trigger_release_build(branch_to_build: release_branch_name(release_version: hotfix_version))
 
-    create_backmerge_prs
+    create_backmerge_prs!
 
     begin
       close_milestone(
@@ -330,45 +318,6 @@ def trigger_buildkite_release_build(branch:, beta:)
 
   message = "This build triggered #{build_url} on <code>#{branch}</code>."
   buildkite_annotate(style: 'info', context: 'trigger-release-build', message: message)
-end
-
-def create_backmerge_pr!
-  pr_urls = create_backmerge_prs
-
-  return pr_urls unless pr_urls.length > 1
-
-  backmerge_error_message = UI.user_error! <<~ERROR
-    Unexpectedly opened more than one backmerge pull request. URLs:
-    #{pr_urls.map { |url| "- #{url}" }.join("\n")}
-  ERROR
-  buildkite_annotate(style: 'error', context: 'error-creating-backmerge', message: backmerge_error_message) if is_ci
-  UI.user_error!(backmerge_error_message)
-end
-
-# Notice the plural in the name.
-# The action this method calls may create multiple backmerge PRs, depending on how many release branches with version greater than the source are in the remote.
-def create_backmerge_prs
-  version = release_version_current
-
-  create_release_backmerge_pull_request(
-    repository: GITHUB_REPO,
-    source_branch: release_branch_name(release_version: version),
-    labels: ['Releases'],
-    milestone_title: release_version_next
-  )
-rescue StandardError => e
-  error_message = <<-MESSAGE
-    Error creating backmerge pull request:
-
-    #{e.message}
-
-    If this is not the first time you are running the release task, the backmerge PR for version `#{version}` might have already been created.
-    Please close any pre-existing backmerge PR for `#{version}`, delete the previous merge branch, then run the release automation again.
-  MESSAGE
-
-  buildkite_annotate(style: 'error', context: 'error-creating-backmerge', message: error_message) if is_ci
-
-  UI.user_error!(error_message)
 end
 
 def freeze_milestone_and_move_assigned_prs_to_next_milestone(
