@@ -152,7 +152,7 @@ platform :ios do
 
   desc 'Trigger the final release build on CI'
   lane :finalize_release do |skip_confirm: false|
-    UI.user_error!('To finalize a hotfix, please use the finalize_hotfix_release lane instead') if release_is_hotfix?
+    UI.user_error!('Hotfix release detected. Please use `finalize_hotfix_release` instead.') if release_is_hotfix?
 
     ensure_git_status_clean
     ensure_git_branch_is_release_branch!
