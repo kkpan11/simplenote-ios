@@ -9,6 +9,8 @@ fi
 set -e
 set -u
 
+echo '--- :git: Configure Git for Release Management'
+
 # The Git command line client is not configured in Buildkite.
 # At the moment, steps that need Git access can configure it on demand using this script.
 # Later on, we should be able to configure it on the agent instead.

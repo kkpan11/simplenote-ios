@@ -3,18 +3,14 @@
 
 # Variables used in this pipeline are defined in `shared-pipeline-vars`, which is `source`'d before calling `buildkite-agent pipeline upload`
 
-# The new beta workflow needs to run on macOS because it uses SwiftGen under the hood.
-#
-# Notice that SwiftGen should work Linux, but we haven't tested it yet.
-# One thing at a time...
-env:
-  IMAGE_ID: $IMAGE_ID
-
 agents:
   queue: mac
 
+env:
+  IMAGE_ID: $IMAGE_ID
+
 steps:
-  - label: New Beta Release
+  - label: Finalize Release
     plugins: [$CI_TOOLKIT_PLUGIN]
     command: |
       source .buildkite/commands/configure-for-release.sh
@@ -27,8 +23,8 @@ steps:
       echo '--- :closed_lock_with_key: Access Secrets'
       bundle exec fastlane run configure_apply
 
-      echo '--- :shipit: New Beta Release'
-      bundle exec fastlane new_beta_release skip_confirm:true
+      echo '--- :shipit: Update Release Notes and Other App Store Metadata'
+      bundle exec fastlane update_metadata_on_app_store_connect skip_confirm:true
     retry:
       manual:
         # If those jobs fail, one should always prefer re-triggering a new build from ReleaseV2 rather than retrying the individual job from Buildkite

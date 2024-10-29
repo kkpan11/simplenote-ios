@@ -112,13 +112,7 @@ platform :ios do
 
     trigger_beta_build(branch_to_build: release_branch_name(release_version: version))
 
-    pr_url = create_backmerge_pr!
-
-    message = <<~MESSAGE
-      Code freeze completed successfully. Next, review and merge the [integration PR](#{pr_url}).
-    MESSAGE
-    buildkite_annotate(context: 'code-freeze-completed', style: 'success', message: message) if is_ci
-    UI.success(message)
+    create_backmerge_prs!
   end
 
   lane :new_beta_release do |skip_confirm: false|
@@ -153,18 +147,12 @@ platform :ios do
 
     trigger_beta_build(branch_to_build: release_branch_name)
 
-    pr_url = create_backmerge_pr!
-
-    message = <<~MESSAGE
-      New beta triggered successfully. Next, review and merge the [integration PR](#{pr_url}).
-    MESSAGE
-    buildkite_annotate(context: 'new-beta-completed', style: 'success', message: message) if is_ci
-    UI.success(message)
+    create_backmerge_prs!
   end
 
   desc 'Trigger the final release build on CI'
   lane :finalize_release do |skip_confirm: false|
-    UI.user_error!('To finalize a hotfix, please use the finalize_hotfix_release lane instead') if release_is_hotfix?
+    UI.user_error!('Hotfix release detected. Please use `finalize_hotfix_release` instead.') if release_is_hotfix?
 
     ensure_git_status_clean
     ensure_git_branch_is_release_branch!
@@ -175,8 +163,8 @@ platform :ios do
     version = release_version_current
     UI.important <<~MESSAGE
       Finalizing release #{version}:
-      • Current build code: #{build_code_current}
-      • Final build code: #{new_build_code}
+      - Current build code: #{build_code_current}
+      - Final build code: #{new_build_code}
     MESSAGE
 
     UI.user_error!("Terminating as requested. Don't forget to run the remainder of this automation manually.") unless skip_confirm || UI.confirm('Do you want to continue?')
@@ -197,29 +185,47 @@ platform :ios do
 
     trigger_release_build(branch_to_build: release_branch_name)
 
-    create_backmerge_prs
+    create_backmerge_prs!
 
-    remove_branch_protection(
+    mark_github_release_milestone_as_completed(
       repository: GITHUB_REPO,
-      branch: release_branch_name
+      release_version: version
+    )
+  end
+
+  lane :publish_release do |skip_confirm: false|
+    ensure_git_status_clean
+    ensure_git_branch_is_release_branch!
+
+    version_number = release_version_current
+
+    current_branch = release_branch_name(release_version: version_number)
+    next_release_branch = release_branch_name(release_version: release_version_next)
+
+    UI.important <<~PROMPT
+      Publish the #{version_number} release. This will:
+
+      - Publish the existing draft `#{version_number}` release on GitHub
+      - Which will also have GitHub create the associated Git tag, pointing to the tip of #{current_branch}
+      - If the release branch for the next version `#{next_release_branch}` already exists, backmerge `#{current_branch}` into it
+      - If needed, backmerge `#{current_branch}` back into `#{DEFAULT_BRANCH}`
+      - Delete the `#{current_branch}` branch
+    PROMPT
+    UI.user_error!("Terminating as requested. Don't forget to run the remainder of this automation manually.") unless skip_confirm || UI.confirm('Do you want to continue?')
+
+    UI.important "Publishing release #{version_number} on GitHub..."
+
+    publish_github_release(
+      repository: GITHUB_REPO,
+      name: version_number
     )
 
-    begin
-      set_milestone_frozen_marker(
-        repository: GITHUB_REPO,
-        milestone: version,
-        freeze: false
-      )
+    create_backmerge_prs!
 
-      create_new_milestone(repository: GITHUB_REPO)
-
-      close_milestone(
-        repository: GITHUB_REPO,
-        milestone: version
-      )
-    rescue StandardError => e
-      report_milestone_error(error_title: "Error in milestone finalization process for `#{version}`: #{e.message}")
-    end
+    # At this point, an intermediate branch has been created by creating a backmerge PR to a hotfix or the next version release branch.
+    # This allows us to safely delete the `release/*` branch.
+    # Note that if a hotfix or new release branches haven't been created, the backmerge PR would not have be created either.
+    delete_remote_git_branch!(current_branch)
   end
 
   desc 'Creates a new hotfix branch for the given version:x.y.z. The branch will be cut from the tag x.y of the previous release'
@@ -279,7 +285,7 @@ platform :ios do
 
     trigger_release_build(branch_to_build: release_branch_name(release_version: hotfix_version))
 
-    create_backmerge_prs
+    create_backmerge_prs!
 
     begin
       close_milestone(
@@ -322,57 +328,27 @@ def check_pods_references
 end
 
 def trigger_buildkite_release_build(branch:, beta:)
-  build_url = buildkite_trigger_build(
-    buildkite_organization: BUILDKITE_ORGANIZATION,
-    buildkite_pipeline: BUILDKITE_PIPELINE,
-    branch: branch,
-    environment: { BETA_RELEASE: beta },
-    pipeline_file: 'release-build.yml'
-  )
+  environment = { BETA_RELEASE: beta }
+  pipeline_file_name = 'release-build.yml'
 
-  return unless is_ci
+  # When in CI, upload the release build pipeline inline in the current pipeline.
+  # Otherwise, trigger a build via the Buildkite APIs.
+  if is_ci
+    buildkite_pipeline_upload(
+      pipeline_file: File.join(PROJECT_ROOT_FOLDER, '.buildkite', pipeline_file_name),
+      environment: environment
+    )
+  else
+    build_url = buildkite_trigger_build(
+      buildkite_organization: BUILDKITE_ORGANIZATION,
+      buildkite_pipeline: BUILDKITE_PIPELINE,
+      branch: branch,
+      environment: environment,
+      pipeline_file: pipeline_file_name
+    )
 
-  message = "This build triggered #{build_url} on <code>#{branch}</code>."
-  buildkite_annotate(style: 'info', context: 'trigger-release-build', message: message)
-end
-
-def create_backmerge_pr!
-  pr_urls = create_backmerge_prs
-
-  return pr_urls unless pr_urls.length > 1
-
-  backmerge_error_message = UI.user_error! <<~ERROR
-    Unexpectedly opened more than one backmerge pull request. URLs:
-    #{pr_urls.map { |url| "- #{url}" }.join("\n")}
-  ERROR
-  buildkite_annotate(style: 'error', context: 'error-creating-backmerge', message: backmerge_error_message) if is_ci
-  UI.user_error!(backmerge_error_message)
-end
-
-# Notice the plural in the name.
-# The action this method calls may create multiple backmerge PRs, depending on how many release branches with version greater than the source are in the remote.
-def create_backmerge_prs
-  version = release_version_current
-
-  create_release_backmerge_pull_request(
-    repository: GITHUB_REPO,
-    source_branch: release_branch_name(release_version: version),
-    labels: ['Releases'],
-    milestone_title: release_version_next
-  )
-rescue StandardError => e
-  error_message = <<-MESSAGE
-    Error creating backmerge pull request:
-
-    #{e.message}
-
-    If this is not the first time you are running the release task, the backmerge PR for version `#{version}` might have already been created.
-    Please close any pre-existing backmerge PR for `#{version}`, delete the previous merge branch, then run the release automation again.
-  MESSAGE
-
-  buildkite_annotate(style: 'error', context: 'error-creating-backmerge', message: error_message) if is_ci
-
-  UI.user_error!(error_message)
+    UI.success("Buildkite build triggered from branch #{branch}. Build URL: #{build_url}")
+  end
 end
 
 def freeze_milestone_and_move_assigned_prs_to_next_milestone(
@@ -423,18 +399,6 @@ def freeze_milestone_and_move_assigned_prs_to_next_milestone(
     context: 'code-freeze-milestone-updates',
     message: moved_prs_info
   )
-end
-
-def report_milestone_error(error_title:)
-  error_message = <<-MESSAGE
-    #{error_title}
-    - If this is not the first time you are running the release task (e.g. retrying because it failed on first attempt), the milestone might have already been closed and this error is expected.
-    - Otherwise, please investigate the error.
-  MESSAGE
-
-  UI.error(error_message)
-
-  buildkite_annotate(style: 'warning', context: 'error-with-milestone', message: error_message) if is_ci
 end
 
 def delete_all_metadata_release_notes(store_metadata_folder: STORE_METADATA_FOLDER)

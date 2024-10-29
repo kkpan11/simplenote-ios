@@ -14,7 +14,6 @@ steps:
     plugins:
       - $CI_TOOLKIT_PLUGIN
     command: |
-      echo '--- :git: Configure Git for Release Management'
       source .buildkite/commands/configure-for-release.sh
 
       echo '--- :ruby: Setup Ruby Tools'
