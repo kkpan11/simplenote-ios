@@ -199,8 +199,6 @@ platform :ios do
         freeze: false
       )
 
-      create_new_milestone(repository: GITHUB_REPO)
-
       close_milestone(
         repository: GITHUB_REPO,
         milestone: version
