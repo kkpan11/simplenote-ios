@@ -324,20 +324,27 @@ def check_pods_references
 end
 
 def trigger_buildkite_release_build(branch:, beta:)
-  build_url = buildkite_trigger_build(
-    buildkite_organization: BUILDKITE_ORGANIZATION,
-    buildkite_pipeline: BUILDKITE_PIPELINE,
-    branch: branch,
-    environment: { BETA_RELEASE: beta },
-    pipeline_file: 'release-build.yml'
-  )
+  environment = { BETA_RELEASE: beta }
+  pipeline_file_name = 'release-build.yml'
 
-  UI.success("Buildkite build triggered. Running on #{build_url}")
+  # When in CI, upload the release build pipeline inline in the current pipeline.
+  # Otherwise, trigger a build via the Buildkite APIs.
+  if is_ci
+    buildkite_pipeline_upload(
+      pipeline_file: File.join(PROJECT_ROOT_FOLDER, '.buildkite', pipeline_file_name),
+      environment: environment
+    )
+  else
+    build_url = buildkite_trigger_build(
+      buildkite_organization: BUILDKITE_ORGANIZATION,
+      buildkite_pipeline: BUILDKITE_PIPELINE,
+      branch: branch,
+      environment: environment,
+      pipeline_file: pipeline_file_name
+    )
 
-  return unless is_ci
-
-  message = "This build triggered #{build_url} on <code>#{branch}</code>."
-  buildkite_annotate(style: 'info', context: 'trigger-release-build', message: message)
+    UI.success("Buildkite build triggered from branch #{branch}. Build URL: #{build_url}")
+  end
 end
 
 def freeze_milestone_and_move_assigned_prs_to_next_milestone(
