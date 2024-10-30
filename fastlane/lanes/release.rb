@@ -336,8 +336,14 @@ def trigger_buildkite_release_build(branch:, beta:)
   if is_ci
     buildkite_pipeline_upload(
       pipeline_file: File.join(PROJECT_ROOT_FOLDER, '.buildkite', pipeline_file_name),
-      # Both keys and values need to be passed as strings
-      environment: environment.to_h { |k, v| [k.to_s, v.to_s] }
+      environment:
+        # Override the commit to make sure it runs on the latest state,
+        # not the commit that triggered the automation that eventaully called this.
+        #
+        # Useful during release automation builds that make additional commits to the release branch.
+        { **environment, BUILDKITE_COMMIT: last_git_commit[:commit_hash] }
+        # Both keys and values need to be passed as strings
+        .to_h { |k, v| [k.to_s, v.to_s] }
     )
   else
     build_url = buildkite_trigger_build(
