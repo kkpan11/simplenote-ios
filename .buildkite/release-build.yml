@@ -6,7 +6,9 @@ agents:
 steps:
   - label: ":testflight: Build Simplenote iOS for App Store Connect"
     key: testflight_build
-    command: .buildkite/commands/release-build.sh
+    command: |
+      .buildkite/commands/checkout-release-branch.sh $RELEASE_VERSION
+      .buildkite/commands/release-build.sh
     priority: 1
     plugins: [$CI_TOOLKIT_PLUGIN]
     artifact_paths:
