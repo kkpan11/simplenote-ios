@@ -328,7 +328,10 @@ def check_pods_references
 end
 
 def trigger_buildkite_release_build(branch:, beta:)
-  environment = { BETA_RELEASE: beta }
+  environment = {
+    BETA_RELEASE: beta,
+    RELEASE_VERSION: release_version_current
+  }
   pipeline_file_name = 'release-build.yml'
 
   # When in CI, upload the release build pipeline inline in the current pipeline.
