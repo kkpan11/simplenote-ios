@@ -1,0 +1,3 @@
+- Pictogrammen bijgewerkt om te werken met nieuwe iOS 18-stijlen
+-Back-up login toevoegen met gebruikersnaam en wachtwoordoptie om in te loggen
+-Link naar privacyverklaring voor gebruikers in Californië bijgewerkt
