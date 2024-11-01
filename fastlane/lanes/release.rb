@@ -419,6 +419,6 @@ end
 
 def release_is_hotfix?
   VERSION_CALCULATOR.release_is_hotfix?(
-    version: VERSION_FORMATTER.parse(VERSION_FILE.read_release_version)
+    version: VERSION_FORMATTER.parse(PUBLIC_VERSION_FILE.read_release_version)
   )
 end
