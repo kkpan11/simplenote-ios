@@ -429,7 +429,7 @@ end
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
 #
-private_lane :update_certs_and_profiles_enterprise do |readonly: true|
+lane :update_certs_and_profiles_enterprise do |readonly: true|
   update_code_signing_enterprise(
     app_identifiers: simplenote_app_identifiers(root_bundle_id: "#{APP_STORE_BUNDLE_IDENTIFIER}.Alpha"),
     readonly: readonly
@@ -440,7 +440,7 @@ end
 # Optionally, it can create any new necessary certificates or profiles.
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
-private_lane :update_certs_and_profiles_app_store do |readonly: true|
+lane :update_certs_and_profiles_app_store do |readonly: true|
   update_code_signing(
     type: 'appstore',
     team_id: TEAM_ID_APP_STORE_CONNECT,
