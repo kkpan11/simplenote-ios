@@ -117,7 +117,7 @@ platform :ios do
   #####################################################################################
   desc 'Builds and uploads an installable build'
   lane :build_and_upload_installable_build do
-    alpha_code_signing
+    update_certs_and_profiles_enterprise
 
     # Get the current build version, and update it if needed
     build_number = generate_installable_build_number
@@ -420,7 +420,7 @@ end
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
 lane :update_certs_and_profiles do |readonly: true|
-  alpha_code_signing(readonly: readonly)
+  update_certs_and_profiles_enterprise(readonly: readonly)
   update_certs_and_profiles_app_store(readonly: readonly)
 end
 
@@ -429,7 +429,7 @@ end
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
 #
-private_lane :alpha_code_signing do |readonly: true|
+private_lane :update_certs_and_profiles_enterprise do |readonly: true|
   update_code_signing_enterprise(
     app_identifiers: simplenote_app_identifiers(root_bundle_id: "#{APP_STORE_BUNDLE_IDENTIFIER}.Alpha"),
     readonly: readonly
