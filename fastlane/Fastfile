@@ -117,7 +117,7 @@ platform :ios do
   #####################################################################################
   desc 'Builds and uploads an installable build'
   lane :build_and_upload_installable_build do
-    alpha_code_signing
+    update_certs_and_profiles_enterprise
 
     # Get the current build version, and update it if needed
     build_number = generate_installable_build_number
@@ -419,10 +419,9 @@ end
 # Optionally, it can create any new necessary certificates or profiles.
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
-lane :update_certs_and_profiles do |options|
-  alpha_code_signing(options)
-  internal_code_signing(options)
-  appstore_code_signing(options)
+lane :update_certs_and_profiles do |readonly: true|
+  update_certs_and_profiles_enterprise(readonly: readonly)
+  update_certs_and_profiles_app_store(readonly: readonly)
 end
 
 # Downloads all the required certificates and profiles (using `match`) for the alpha builds in the enterprise account.
@@ -430,22 +429,10 @@ end
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
 #
-private_lane :alpha_code_signing do |options|
+lane :update_certs_and_profiles_enterprise do |readonly: true|
   update_code_signing_enterprise(
     app_identifiers: simplenote_app_identifiers(root_bundle_id: "#{APP_STORE_BUNDLE_IDENTIFIER}.Alpha"),
-    readonly: options.fetch(:readonly, true)
-  )
-end
-
-# Downloads all the required certificates and profiles (using `match`) for the internal builds in the enterprise account.
-# Optionally, it can create any new necessary certificates or profiles.
-#
-# @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
-#
-private_lane :internal_code_signing do |options|
-  update_code_signing_enterprise(
-    app_identifiers: simplenote_app_identifiers(root_bundle_id: "#{APP_STORE_BUNDLE_IDENTIFIER}.Internal"),
-    readonly: options.fetch(:readonly, true)
+    readonly: readonly
   )
 end
 
@@ -453,11 +440,11 @@ end
 # Optionally, it can create any new necessary certificates or profiles.
 #
 # @option [Boolean] readonly (default: true) Whether to only fetch existing certificates and profiles, without generating new ones.
-private_lane :appstore_code_signing do |options|
+lane :update_certs_and_profiles_app_store do |readonly: true|
   update_code_signing(
     type: 'appstore',
     team_id: TEAM_ID_APP_STORE_CONNECT,
-    readonly: options.fetch(:readonly, true),
+    readonly: readonly,
     app_identifiers: simplenote_app_identifiers,
     api_key_path: APP_STORE_CONNECT_KEY_PATH,
     template_name: 'NotationalFlow Keychain Access (Distribution)'

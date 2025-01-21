@@ -5,7 +5,7 @@ XCARCHIVE_PATH = File.join(OUTPUT_DIRECTORY_PATH, "#{APP_STORE_CONNECT_OUTPUT_NA
 XCARCHIVE_ZIP_PATH = File.join(OUTPUT_DIRECTORY_PATH, "#{APP_STORE_CONNECT_OUTPUT_NAME}.xcarchive.zip")
 
 lane :build_for_app_store_connect do |fetch_code_signing: true|
-  appstore_code_signing if fetch_code_signing
+  update_certs_and_profiles_app_store if fetch_code_signing
 
   build_app(
     scheme: 'Simplenote',
