@@ -100,7 +100,8 @@ platform :ios do
       phased_release: true,
       precheck_include_in_app_purchases: false,
       api_key_path: APP_STORE_CONNECT_KEY_PATH,
-      force: skip_confirm
+      force: skip_confirm,
+      copyright: "© #{Time.now.year} Automattic, Inc."
     )
   end
 
